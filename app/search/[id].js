@@ -10,54 +10,31 @@ import styles from '../../styles/search'
 
 const JobSearch = () => {
     const params = useSearchParams();
-    const router = useRouter()
+    const router = useRouter();
 
-    const [searchResult, setSearchResult] = useState([]);
-    const [searchLoader, setSearchLoader] = useState(false);
-    const [searchError, setSearchError] = useState(null);
     const [page, setPage] = useState(1);
+    const [firstRender, setFirstRender] = useState(true);
+    const { refetch, isLoading, data, error } = useFetch("search", {
+        query: params.id,
+        page: page.toString(),
+    });
 
-    const handleSearch = async () => {
-        setSearchLoader(true);
-        setSearchResult([])
-
-        try {
-            const options = {
-                method: "GET",
-                url: `https://jsearch.p.rapidapi.com/search`,
-                headers: {
-                    "X-RapidAPI-Key": '',
-                    "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
-                },
-                params: {
-                    query: params.id,
-                    page: page.toString(),
-                },
-            };
-
-            const response = await axios.request(options);
-            setSearchResult(response.data.data);
-        } catch (error) {
-            setSearchError(error);
-            console.log(error);
-        } finally {
-            setSearchLoader(false);
+    const handlePagination = (direction) => {
+        if (direction === "left" && page > 1) {
+        setPage(page - 1);
+        } else if (direction === "right") {
+        setPage(page + 1);
         }
     };
 
-    const handlePagination = (direction) => {
-        if (direction === 'left' && page > 1) {
-            setPage(page - 1)
-            handleSearch()
-        } else if (direction === 'right') {
-            setPage(page + 1)
-            handleSearch()
-        }
-    }
-
     useEffect(() => {
-        handleSearch()
-    }, [])
+        if (!firstRender) {
+            refetch();
+            }
+        if (firstRender) {
+        setFirstRender(false);
+        }
+    }, [page]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.lightWhite }}>
@@ -77,7 +54,7 @@ const JobSearch = () => {
             />
 
             <FlatList
-                data={searchResult}
+                data={data}
                 renderItem={({ item }) => (
                     <NearbyJobCard
                         job={item}
@@ -93,9 +70,9 @@ const JobSearch = () => {
                             <Text style={styles.noOfSearchedJobs}>Job Opportunities</Text>
                         </View>
                         <View style={styles.loaderContainer}>
-                            {searchLoader ? (
+                            {isLoading ? (
                                 <ActivityIndicator size='large' color={COLORS.primary} />
-                            ) : searchError && (
+                            ) : error && (
                                 <Text>Oops something went wrong</Text>
                             )}
                         </View>
